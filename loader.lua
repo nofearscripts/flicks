@@ -2,7 +2,7 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local WEBHOOK = https://discordapp.com/api/webhooks/1464221554882773015/ftA-3uBbD71H5K_0RsOgJr5nX0lFdMDlCaOQFPHhmzuo-czcDhJQQJmcH5F3bpBCAqxR"
-local MAIN_SCRIPT = "https://raw.githubusercontent.com/nofearscripts/flicks/main.lua"
+local MAIN_SCRIPT = "https://raw.githubusercontent.com/nofearscripts/flicks/main/main.lua"
 
 pcall(function()
     local player = Players.LocalPlayer
