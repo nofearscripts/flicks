@@ -1,0 +1,509 @@
+--// SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+--// ============================================================
+-- PLACE ID CHECK
+-- ============================================================
+local requiredPlaceId = 136801880565837
+if game.PlaceId ~= requiredPlaceId then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "NoFear v1.2.1",
+        Text = "This script only works in Flick!",
+        Duration = 10,
+        Button1 = "OK"
+    })
+    return
+end
+
+--// ============================================================
+-- DRAWN CURSOR
+-- ============================================================
+local Cursor = {
+    Body = Drawing.new("Triangle"),
+    Outline = Drawing.new("Triangle"),
+    Visible = true
+}
+
+Cursor.Body.Color = Color3.fromRGB(255,255,255)
+Cursor.Body.Filled = true
+Cursor.Outline.Color = Color3.fromRGB(0,0,0)
+Cursor.Outline.Filled = false
+
+local function setCursorVisible(state)
+    Cursor.Visible = state
+    Cursor.Body.Visible = state
+    Cursor.Outline.Visible = state
+end
+
+-- Store connections for cleanup
+local Connections = {}
+
+table.insert(Connections, RunService.RenderStepped:Connect(function()
+    if not Cursor.Visible then return end
+    local m = UserInputService:GetMouseLocation()
+    local x, y = m.X, m.Y
+
+    Cursor.Body.PointA = Vector2.new(x, y)
+    Cursor.Body.PointB = Vector2.new(x + 10, y + 5)
+    Cursor.Body.PointC = Vector2.new(x + 5, y + 10)
+
+    Cursor.Outline.PointA = Cursor.Body.PointA
+    Cursor.Outline.PointB = Cursor.Body.PointB
+    Cursor.Outline.PointC = Cursor.Body.PointC
+end))
+
+--// ============================================================
+-- CAT UI
+-- ============================================================
+local catSource = game:HttpGet(
+    "https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/cat"
+)
+
+catSource = catSource:gsub(
+    "UserInputService.MouseBehavior%s*=%s*Enum.MouseBehavior.LockCenter",
+    "UserInputService.MouseBehavior = Enum.MouseBehavior.Default"
+)
+
+catSource = catSource:gsub(
+    "UserInputService.MouseIconEnabled%s*=%s*false",
+    "UserInputService.MouseIconEnabled = true"
+)
+
+local Library = loadstring(catSource)()
+
+UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+UserInputService.MouseIconEnabled = true
+
+--// ============================================================
+-- CREATE CONFIG PARENT FOLDER
+-- ============================================================
+if makefolder then
+    pcall(makefolder, "NoFear_RightControl_To_Hide")
+end
+
+
+--// ============================================================
+-- DISCORD LINK HANDLER (Multi-Executor Support)
+-- ============================================================
+pcall(function()
+    local discordLink = "https://discord.gg/cHx6tasbCK"
+    
+    -- Try to copy to clipboard (most reliable method)
+    if setclipboard then
+        setclipboard(discordLink)
+        print("[NoFear] Discord link copied to clipboard!")
+        
+        -- Show notification popup
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "NoFear v1.2.1",
+            Text = "Discord has been copied to clipboard!",
+            Duration = 10,
+            Button1 = "OK"
+        })
+    end
+    
+    -- Also try to open in browser (may not work on all executors)
+    if syn and syn.request then
+        syn.request({Url = discordLink, Method = "GET"})
+    elseif http_request then
+        http_request({Url = discordLink, Method = "GET"})
+    elseif request then
+        request({Url = discordLink, Method = "GET"})
+    elseif http and http.request then
+        http.request({Url = discordLink, Method = "GET"})
+    end
+end)
+
+--// ============================================================
+-- UI WINDOW
+-- ============================================================
+local Window = Library:CreateWindow(
+    "No.Fear/RightControlToHide/",
+    Vector2.new(492, 598),
+    Enum.KeyCode.RightControl
+)
+
+local UIVisible = true
+local inputConnection = UserInputService.InputBegan:Connect(function(i, g)
+    if g then return end
+    if i.KeyCode == Enum.KeyCode.RightControl then
+        UIVisible = not UIVisible
+        setCursorVisible(UIVisible)
+    end
+end)
+table.insert(Connections, inputConnection)
+
+local VisualsTab = Window:CreateTab("Visuals")
+local CombatTab = Window:CreateTab("Combat")
+local MiscTab = Window:CreateTab("Misc")
+local SettingsTab = Window:CreateTab("Settings")
+
+local ESPSection = VisualsTab:CreateSector("ESP", "left")
+local TracerSection = VisualsTab:CreateSector("Tracers", "right")
+local AimbotSection = CombatTab:CreateSector("Aimbot", "left")
+local MiscSection = MiscTab:CreateSector("Miscellaneous", "left")
+local SettingsSection = SettingsTab:CreateSector("Settings", "left")
+
+--// ============================================================
+-- FLAGS
+-- ============================================================
+local Flags = {
+    ESPEnabled = false,
+    Boxes = false,
+    Names = false,
+    Distance = false,
+    Tracers = false,
+    TeamCheck = false,
+    BoxColor = Color3.fromRGB(255,255,255),
+    TracerColor = Color3.fromRGB(255,255,255),
+    
+    AimbotEnabled = false,
+    AimbotFOV = 100,
+    ShowFOV = false,
+    FOVColor = Color3.fromRGB(255,255,255),
+    WallCheck = false,
+    
+    CameraFOV = 70
+}
+
+--// ============================================================
+-- UI CONTROLS - ESP
+-- ============================================================
+ESPSection:AddToggle("Enable ESP", false, function(v)
+    Flags.ESPEnabled = v
+end)
+
+ESPSection:AddToggle("Boxes", false, function(v)
+    Flags.Boxes = v
+end)
+
+ESPSection:AddToggle("Names", false, function(v)
+    Flags.Names = v
+end)
+
+ESPSection:AddToggle("Distance", false, function(v)
+    Flags.Distance = v
+end)
+
+ESPSection:AddToggle("Team Check", false, function(v)
+    Flags.TeamCheck = v
+end)
+
+local ColorToggle = ESPSection:AddToggle("Box Color", false, function() end)
+ColorToggle:AddColorpicker(Flags.BoxColor, function(c)
+    Flags.BoxColor = c
+end)
+
+-- CONFIG SYSTEM
+VisualsTab:CreateConfigSystem("right")
+
+--// ============================================================
+-- UI CONTROLS - TRACERS
+-- ============================================================
+TracerSection:AddToggle("Enable Tracers", false, function(v)
+    Flags.Tracers = v
+end)
+
+local TracerColorToggle = TracerSection:AddToggle("Tracer Color", false, function() end)
+TracerColorToggle:AddColorpicker(Flags.TracerColor, function(c)
+    Flags.TracerColor = c
+end)
+
+--// ============================================================
+-- UI CONTROLS - AIMBOT
+-- ============================================================
+AimbotSection:AddToggle("Enable Aimbot", false, function(v)
+    Flags.AimbotEnabled = v
+end)
+
+AimbotSection:AddToggle("Wall Check", false, function(v)
+    Flags.WallCheck = v
+end)
+
+AimbotSection:AddSlider("FOV Size", 0, 100, 500, 1, function(v)
+    Flags.AimbotFOV = v
+end)
+
+AimbotSection:AddToggle("Show FOV Circle", false, function(v)
+    Flags.ShowFOV = v
+end)
+
+local FOVColorToggle = AimbotSection:AddToggle("FOV Color", false, function() end)
+FOVColorToggle:AddColorpicker(Flags.FOVColor, function(c)
+    Flags.FOVColor = c
+end)
+
+--// ============================================================
+-- UI CONTROLS - MISC TAB
+-- ============================================================
+MiscSection:AddSlider("Camera FOV", 70, 70, 120, 1, function(v)
+    Flags.CameraFOV = v
+end)
+
+--// ============================================================
+-- UI CONTROLS - SETTINGS TAB
+-- ============================================================
+SettingsSection:AddButton("Unload Script", function()
+    print("[NoFear] Unloading...")
+    
+    -- Disconnect all connections
+    for _, conn in pairs(Connections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    
+    -- Remove all ESP
+    if ESP then
+        for plr, espData in pairs(ESP) do
+            if espData then
+                pcall(function() espData.Box:Remove() end)
+                pcall(function() espData.Name:Remove() end)
+                pcall(function() espData.Distance:Remove() end)
+                pcall(function() espData.Tracer:Remove() end)
+            end
+        end
+    end
+    
+    -- Remove drawings (except cursor)
+    pcall(function() 
+        FOVCircle.Visible = false 
+        FOVCircle:Remove() 
+    end)
+    pcall(function() 
+        WatermarkBox.Visible = false 
+        WatermarkBox:Remove() 
+    end)
+    pcall(function() 
+        WatermarkTitle.Visible = false 
+        WatermarkTitle:Remove() 
+    end)
+    pcall(function() 
+        WatermarkVersion.Visible = false 
+        WatermarkVersion:Remove() 
+    end)
+    pcall(function() 
+        WatermarkDiscord.Visible = false 
+        WatermarkDiscord:Remove() 
+    end)
+    
+    -- Reset camera and mouse
+    workspace.CurrentCamera.FieldOfView = 70
+    game:GetService("UserInputService").MouseIconEnabled = true
+    
+    -- Hide/destroy the UI window
+    pcall(function()
+        for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
+            if v.Name == "No.Fear/RightControlToHide/" or v.Name:find("No.Fear") then
+                v:Destroy()
+            end
+        end
+    end)
+    
+    print("[NoFear] Fully unloaded! You can re-execute the script.")
+end)
+
+--// ============================================================
+-- FOV CIRCLE
+-- ============================================================
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 2
+FOVCircle.NumSides = 50
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+FOVCircle.Visible = false
+
+--// ============================================================
+-- ESP SYSTEM
+-- ============================================================
+local ESP = {}
+
+local function newDraw(t, props)
+    local d = Drawing.new(t)
+    for k,v in pairs(props) do d[k] = v end
+    return d
+end
+
+local function createESP(plr)
+    if plr == LocalPlayer then return end
+    
+    local whiteColor = Color3.fromRGB(255, 255, 255)
+    
+    ESP[plr] = {
+        Box = newDraw("Square", {
+            Thickness = 1,
+            Filled = false,
+            Color = Flags.BoxColor,
+            Visible = false
+        }),
+        Name = newDraw("Text", {
+            Size = 13,
+            Center = true,
+            Outline = true,
+            Color = whiteColor,
+            Visible = false
+        }),
+        Distance = newDraw("Text", {
+            Size = 12,
+            Center = true,
+            Outline = true,
+            Color = whiteColor,
+            Visible = false
+        }),
+        Tracer = newDraw("Line", {
+            Thickness = 1,
+            Color = Flags.TracerColor,
+            Visible = false
+        })
+    }
+end
+
+function removeESP(plr)
+    if ESP[plr] then
+        for _,d in pairs(ESP[plr]) do 
+            d.Visible = false
+            d:Remove() 
+        end
+        ESP[plr] = nil
+    end
+end
+
+for _,p in ipairs(Players:GetPlayers()) do createESP(p) end
+local playerAddedConn = Players.PlayerAdded:Connect(createESP)
+local playerRemovingConn = Players.PlayerRemoving:Connect(removeESP)
+table.insert(Connections, playerAddedConn)
+table.insert(Connections, playerRemovingConn)
+
+--// ============================================================
+-- AIMBOT FUNCTIONS
+-- ============================================================
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = Flags.AimbotFOV
+    
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        
+        local char = plr.Character
+        local head = char and char:FindFirstChild("Head")
+        local hum = char and char:FindFirstChild("Humanoid")
+        
+        if not char or not head or not hum or hum.Health <= 0 then continue end
+        if Flags.TeamCheck and plr.Team == LocalPlayer.Team then continue end
+        
+        -- Wall Check
+        if Flags.WallCheck then
+            local ray = Ray.new(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * 1000)
+            local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, Camera})
+            
+            if hit and not hit:IsDescendantOf(char) then
+                continue
+            end
+        end
+        
+        local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+        
+        if onScreen then
+            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+            
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = plr
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function aimAt(player)
+    local char = player.Character
+    local head = char and char:FindFirstChild("Head")
+    
+    if head then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+    end
+end
+
+--// ============================================================
+-- MAIN RENDER LOOP
+-- ============================================================
+table.insert(Connections, RunService.RenderStepped:Connect(function()
+    -- Apply Camera FOV
+    Camera.FieldOfView = Flags.CameraFOV
+    
+    -- Update FOV Circle
+    local mousePos = UserInputService:GetMouseLocation()
+    FOVCircle.Position = mousePos
+    FOVCircle.Radius = Flags.AimbotFOV
+    FOVCircle.Color = Flags.FOVColor
+    FOVCircle.Visible = Flags.ShowFOV
+    
+    -- Aimbot Logic (Always on when enabled)
+    if Flags.AimbotEnabled then
+        local target = getClosestPlayer()
+        if target then
+            aimAt(target)
+        end
+    end
+    
+    -- ESP Render
+    for plr, draw in pairs(ESP) do
+        local char = plr.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local head = char and char:FindFirstChild("Head")
+        local hum = char and char:FindFirstChild("Humanoid")
+
+        -- Hide ESP if conditions not met
+        if not Flags.ESPEnabled
+        or not hrp or not head or not hum
+        or hum.Health <= 0
+        or (Flags.TeamCheck and plr.Team == LocalPlayer.Team) then
+            draw.Box.Visible = false
+            draw.Name.Visible = false
+            draw.Distance.Visible = false
+            draw.Tracer.Visible = false
+            continue
+        end
+
+        local headPos, headOnScreen = Camera:WorldToViewportPoint(head.Position)
+        local rootPos, rootOnScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+        -- Hide ESP if not on screen
+        if not headOnScreen or not rootOnScreen then
+            draw.Box.Visible = false
+            draw.Name.Visible = false
+            draw.Distance.Visible = false
+            draw.Tracer.Visible = false
+            continue
+        end
+
+        local height = math.abs(headPos.Y - rootPos.Y) * 1.15
+        local width = height * 0.55
+
+        draw.Box.Size = Vector2.new(width, height)
+        draw.Box.Position = Vector2.new(rootPos.X - width/2, headPos.Y)
+        draw.Box.Color = Flags.BoxColor
+        draw.Box.Visible = Flags.Boxes
+
+        draw.Name.Text = plr.Name
+        draw.Name.Position = Vector2.new(rootPos.X, headPos.Y - 14)
+        draw.Name.Visible = Flags.Names
+
+        local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
+        draw.Distance.Text = math.floor(dist).."m"
+        draw.Distance.Position = Vector2.new(rootPos.X, headPos.Y + height + 2)
+        draw.Distance.Visible = Flags.Distance
+        
+        -- Tracers from bottom center of screen
+        local viewportSize = Camera.ViewportSize
+        draw.Tracer.From = Vector2.new(viewportSize.X / 2, viewportSize.Y)
+        draw.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+        draw.Tracer.Color = Flags.TracerColor
+        draw.Tracer.Visible = Flags.Tracers
+    end
+end))
