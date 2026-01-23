@@ -121,8 +121,9 @@ end)
 --// ============================================================
 -- UI WINDOW
 -- ============================================================
+-- FIX: Removed slashes which were causing directory creation errors
 local Window = Library:CreateWindow(
-    "No.Fear/RightControlToHide/",
+    "NoFear_RightControlToHide", 
     Vector2.new(492, 598),
     Enum.KeyCode.RightControl
 )
@@ -296,7 +297,8 @@ SettingsSection:AddButton("Unload Script", function()
     -- Hide/destroy the UI window
     pcall(function()
         for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
-            if v.Name == "No.Fear/RightControlToHide/" or v.Name:find("No.Fear") then
+            -- Updated check to match new title name
+            if v.Name == "NoFear_RightControlToHide" or v.Name:find("NoFear") then
                 v:Destroy()
             end
         end
@@ -506,4 +508,4 @@ table.insert(Connections, RunService.RenderStepped:Connect(function()
         draw.Tracer.Color = Flags.TracerColor
         draw.Tracer.Visible = Flags.Tracers
     end
-end))
+end)) 
